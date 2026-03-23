@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="screen_background">#F5F7FB</color>
+    <color name="hero_background">#D9F0FF</color>
+    <color name="card_background">#FFFFFFFF</color>
+    <color name="card_stroke">#D9E2EC</color>
+    <color name="text_primary">#102A43</color>
+    <color name="text_secondary">#486581</color>
+    <color name="log_background">#111827</color>
+    <color name="seed">#0A7DB8</color>
+    <color name="status_idle">#4B5563</color>
+    <color name="status_running">#0F766E</color>
+    <color name="status_starting">#1D4ED8</color>
+    <color name="status_stopping">#9A3412</color>
+    <color name="status_error">#B91C1C</color>
+</resources>

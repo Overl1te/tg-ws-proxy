@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">TG WS Proxy Android</string>
+    <string name="app_subtitle">Локальный SOCKS5-прокси для Telegram на Android. Приложение держит localhost-прокси через фоновый сервис и может открыть Telegram с уже заполненными настройками.</string>
+    <string name="current_endpoint">Текущий адрес</string>
+    <string name="default_endpoint">127.0.0.1:1080</string>
+    <string name="card_actions">Быстрые действия</string>
+    <string name="card_actions_hint">Одна кнопка запускает прокси и открывает Telegram со ссылкой на готовую SOCKS-настройку.</string>
+    <string name="card_config">Настройки прокси</string>
+    <string name="card_config_hint">Для Telegram на этом устройстве обычно нужен `127.0.0.1` и локальный порт.</string>
+    <string name="label_host">Хост</string>
+    <string name="label_port">Порт</string>
+    <string name="label_dc_ip">Карта DC IP</string>
+    <string name="label_verbose">Подробные логи</string>
+    <string name="label_status">Статус</string>
+    <string name="label_logs">Логи</string>
+    <string name="hint_host">127.0.0.1</string>
+    <string name="hint_port">1080</string>
+    <string name="hint_dc_ip">2:149.154.167.220
+4:149.154.167.220</string>
+    <string name="action_save">Сохранить</string>
+    <string name="action_start">Запустить</string>
+    <string name="action_stop">Остановить</string>
+    <string name="action_open_telegram">Открыть в Telegram</string>
+    <string name="status_stopped">Остановлен</string>
+    <string name="status_starting">Запуск</string>
+    <string name="status_running">Работает</string>
+    <string name="status_stopping">Остановка</string>
+    <string name="status_error">Ошибка</string>
+    <string name="logs_placeholder">Логи появятся после запуска прокси.</string>
+    <string name="notification_channel_name">Сервис прокси</string>
+    <string name="notification_channel_description">Удерживает локальный прокси Telegram активным в фоне.</string>
+    <string name="notification_title">TG WS Proxy Android</string>
+    <string name="notification_text_starting">Прокси запускается</string>
+    <string name="notification_text_running">Прокси работает на %1$s:%2$d</string>
+    <string name="notification_action_stop">Остановить</string>
+    <string name="toast_telegram_fallback">Не удалось открыть Telegram по основной ссылке, пробую запасную.</string>
+    <string name="toast_telegram_missing">Не удалось открыть Telegram.</string>
+    <string name="toast_config_saved">Настройки сохранены.</string>
+    <string name="toast_host_required">Укажи хост.</string>
+    <string name="toast_port_invalid">Порт должен быть в диапазоне от 1 до 65535.</string>
+    <string name="toast_dc_ip_invalid">Некорректная карта DC IP.</string>
+</resources>
