@@ -14,6 +14,8 @@
 
 **Локальный SOCKS5-прокси** для Telegram Desktop, который **ускоряет работу Telegram**, перенаправляя трафик через WebSocket-соединения. Данные передаются в том же зашифрованном виде, а для работы не нужны сторонние сервера.
 
+В репозитории также есть **Android-порт** на Kotlin в папке [`android`](android) с отдельным UI, foreground service и локальным SOCKS5-прокси для Telegram Android.
+
 <img width="529" height="487" alt="image" src="https://github.com/user-attachments/assets/6a4cf683-0df8-43af-86c1-0e8f08682b62" />
 
 ## Как это работает
@@ -79,6 +81,18 @@ chmod +x TgWsProxy_linux_amd64
 ```
 
 При первом запуске откроется окно с инструкцией. Приложение работает в системном трее (требуется AppIndicator).
+
+### Android
+
+Android-версия находится в папке [`android`](android) и собирается отдельно от desktop-части. Это приложение на Kotlin, которое поднимает локальный прокси как foreground service и может открыть Telegram через `tg://socks` ссылку.
+
+1. Откройте папку `android` в Android Studio
+2. Дождитесь `Gradle Sync`
+3. Для debug-сборки используйте `Build -> Build APK(s)` или `.\gradlew.bat assembleDebug`
+4. Для release-сборки используйте `Build -> Generate Signed Bundle / APK` или `.\gradlew.bat assembleRelease`
+5. После запуска настройте Telegram Android на `127.0.0.1:1080` или используйте кнопку открытия Telegram внутри приложения
+
+Подробная инструкция находится в [`android/README.md`](android/README.md).
 
 ## Установка из исходников
 
@@ -176,6 +190,8 @@ Tray-приложение хранит данные в:
 - **Windows:** `%APPDATA%/TgWsProxy`
 - **macOS:** `~/Library/Application Support/TgWsProxy`
 - **Linux:** `~/.config/TgWsProxy` (или `$XDG_CONFIG_HOME/TgWsProxy`)
+
+Android-порт хранит конфигурацию отдельно, внутри приложения. Для Android-сборки и запуска см. [`android/README.md`](android/README.md).
 
 ```json
 {
