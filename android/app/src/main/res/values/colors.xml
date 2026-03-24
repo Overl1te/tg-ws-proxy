@@ -1,16 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="screen_background">#F5F7FB</color>
-    <color name="hero_background">#D9F0FF</color>
+    <color name="screen_background">#EFF4FA</color>
+    <color name="hero_background">#DBEFFB</color>
+    <color name="hero_background_busy">#E2E8FF</color>
+    <color name="hero_background_running">#D9F4E6</color>
+    <color name="hero_background_error">#FFE3DE</color>
     <color name="card_background">#FFFFFFFF</color>
-    <color name="card_stroke">#D9E2EC</color>
-    <color name="text_primary">#102A43</color>
-    <color name="text_secondary">#486581</color>
-    <color name="log_background">#111827</color>
-    <color name="seed">#0A7DB8</color>
-    <color name="status_idle">#4B5563</color>
-    <color name="status_running">#0F766E</color>
-    <color name="status_starting">#1D4ED8</color>
-    <color name="status_stopping">#9A3412</color>
-    <color name="status_error">#B91C1C</color>
+    <color name="card_stroke">#D6E1EA</color>
+    <color name="text_primary">#10263B</color>
+    <color name="text_secondary">#5B7183</color>
+    <color name="log_background">#0F172A</color>
+    <color name="seed">#0E86C6</color>
+    <color name="endpoint_background">#F8FBFD</color>
+    <color name="icon_tile_background">#FFFFFF</color>
+    <color name="status_idle">#425466</color>
+    <color name="status_running">#0E8B66</color>
+    <color name="status_starting">#3157E1</color>
+    <color name="status_stopping">#A1521D</color>
+    <color name="status_error">#C23B34</color>
+    <color name="power_button_off">#0E86C6</color>
+    <color name="power_button_running">#F06449</color>
+    <color name="power_button_busy">#3157E1</color>
+    <color name="power_button_error">#C23B34</color>
 </resources>

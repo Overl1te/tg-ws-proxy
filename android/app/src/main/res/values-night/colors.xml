@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="screen_background">#09121C</color>
+    <color name="hero_background">#10263B</color>
+    <color name="hero_background_busy">#1B2950</color>
+    <color name="hero_background_running">#103129</color>
+    <color name="hero_background_error">#3A1A1D</color>
+    <color name="card_background">#0E1A29</color>
+    <color name="card_stroke">#1E3146</color>
+    <color name="text_primary">#EEF4FB</color>
+    <color name="text_secondary">#9FB1C5</color>
+    <color name="log_background">#040A12</color>
+    <color name="seed">#6BC7FF</color>
+    <color name="endpoint_background">#122336</color>
+    <color name="icon_tile_background">#132334</color>
+    <color name="status_idle">#5C728B</color>
+    <color name="status_running">#21B588</color>
+    <color name="status_starting">#7A91FF</color>
+    <color name="status_stopping">#F29C5B</color>
+    <color name="status_error">#FF6F66</color>
+    <color name="power_button_off">#1998D8</color>
+    <color name="power_button_running">#F46B52</color>
+    <color name="power_button_busy">#738BFF</color>
+    <color name="power_button_error">#FF6F66</color>
+</resources>

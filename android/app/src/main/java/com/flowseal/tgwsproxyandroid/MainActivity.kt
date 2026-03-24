@@ -4,9 +4,11 @@ import android.Manifest
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.res.ColorStateList
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.view.View
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -21,6 +23,8 @@ import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
+    private var currentStatus: ProxyStatus = ProxyStatus.STOPPED
+    private var currentThemeMode: AppThemeMode = AppThemeMode.SYSTEM
 
     private val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission(),
@@ -35,6 +39,7 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         bindInitialConfig()
+        bindUiPreferences()
         bindActions()
         observeState()
         observeLogs()
@@ -49,6 +54,13 @@ class MainActivity : AppCompatActivity() {
         updateEndpointPreview(config)
     }
 
+    private fun bindUiPreferences() {
+        val uiPreferences = UiPreferencesStore.load(this)
+        currentThemeMode = uiPreferences.themeMode
+        binding.themeChipGroup.check(themeChipId(uiPreferences.themeMode))
+        updateLogsVisibility(uiPreferences.logsExpanded)
+    }
+
     private fun bindActions() {
         binding.saveButton.setOnClickListener {
             val config = currentConfigOrNull() ?: return@setOnClickListener
@@ -57,15 +69,18 @@ class MainActivity : AppCompatActivity() {
             toast(getString(R.string.toast_config_saved))
         }
 
-        binding.startButton.setOnClickListener {
-            val config = currentConfigOrNull() ?: return@setOnClickListener
-            maybeRequestNotificationPermission()
-            ProxyForegroundService.start(this, config)
-            updateEndpointPreview(config)
-        }
-
-        binding.stopButton.setOnClickListener {
-            ProxyForegroundService.stop(this)
+        binding.powerButton.setOnClickListener {
+            when (currentStatus) {
+                ProxyStatus.RUNNING -> ProxyForegroundService.stop(this)
+                ProxyStatus.STARTING, ProxyStatus.STOPPING -> Unit
+                ProxyStatus.STOPPED, ProxyStatus.ERROR -> {
+                    val config = currentConfigOrNull() ?: return@setOnClickListener
+                    ProxyConfigStore.save(this, config)
+                    maybeRequestNotificationPermission()
+                    ProxyForegroundService.start(this, config)
+                    updateEndpointPreview(config)
+                }
+            }
         }
 
         binding.telegramButton.setOnClickListener {
@@ -76,21 +91,49 @@ class MainActivity : AppCompatActivity() {
             updateEndpointPreview(config)
             openTelegramProxySetup(config)
         }
+
+        binding.toggleLogsButton.setOnClickListener {
+            val expanded = binding.logsContentContainer.visibility != View.VISIBLE
+            UiPreferencesStore.saveLogsExpanded(this, expanded)
+            updateLogsVisibility(expanded)
+        }
+
+        binding.themeChipGroup.setOnCheckedStateChangeListener { _, checkedIds ->
+            val checkedId = checkedIds.firstOrNull() ?: return@setOnCheckedStateChangeListener
+            val nextThemeMode = when (checkedId) {
+                R.id.themeLightChip -> AppThemeMode.LIGHT
+                R.id.themeDarkChip -> AppThemeMode.DARK
+                else -> AppThemeMode.SYSTEM
+            }
+            if (nextThemeMode == currentThemeMode) {
+                return@setOnCheckedStateChangeListener
+            }
+            currentThemeMode = nextThemeMode
+            UiPreferencesStore.saveThemeMode(this, nextThemeMode)
+            UiPreferencesStore.applyThemeMode(nextThemeMode)
+        }
     }
 
     private fun observeState() {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 ProxyStateStore.state.collectLatest { state ->
-                    val text = buildString {
-                        append(getStatusText(state.status))
-                        if (state.detail.isNotBlank()) {
-                            append("  ")
-                            append(state.detail)
-                        }
+                    currentStatus = state.status
+                    binding.stateText.text = getStatusText(state.status)
+                    binding.statusChip.setCardBackgroundColor(ContextCompat.getColor(this@MainActivity, statusColor(state.status)))
+                    binding.heroCard.setCardBackgroundColor(ContextCompat.getColor(this@MainActivity, heroCardColor(state.status)))
+                    binding.heroTitleText.text = getHeroTitle(state.status)
+                    binding.heroSubtitleText.text = if (state.status == ProxyStatus.ERROR && state.detail.isNotBlank()) {
+                        state.detail
+                    } else {
+                        getHeroSubtitle(state.status)
                     }
-                    binding.stateText.text = text
-                    binding.stateText.setBackgroundColor(ContextCompat.getColor(this@MainActivity, statusColor(state.status)))
+                    binding.powerButton.text = getPowerButtonText(state.status)
+                    binding.powerButton.isEnabled = state.status != ProxyStatus.STARTING && state.status != ProxyStatus.STOPPING
+                    binding.powerButton.alpha = if (binding.powerButton.isEnabled) 1f else 0.78f
+                    binding.powerButton.backgroundTintList = ColorStateList.valueOf(
+                        ContextCompat.getColor(this@MainActivity, powerButtonColor(state.status)),
+                    )
                 }
             }
         }
@@ -184,12 +227,63 @@ class MainActivity : AppCompatActivity() {
         binding.endpointText.text = "${config.host}:${config.port}"
     }
 
+    private fun updateLogsVisibility(expanded: Boolean) {
+        binding.logsContentContainer.visibility = if (expanded) View.VISIBLE else View.GONE
+        binding.toggleLogsButton.text = if (expanded) {
+            getString(R.string.action_hide_logs)
+        } else {
+            getString(R.string.action_show_logs)
+        }
+    }
+
+    private fun themeChipId(themeMode: AppThemeMode): Int = when (themeMode) {
+        AppThemeMode.SYSTEM -> R.id.themeSystemChip
+        AppThemeMode.LIGHT -> R.id.themeLightChip
+        AppThemeMode.DARK -> R.id.themeDarkChip
+    }
+
+    private fun powerButtonColor(status: ProxyStatus): Int = when (status) {
+        ProxyStatus.RUNNING -> R.color.power_button_running
+        ProxyStatus.STARTING, ProxyStatus.STOPPING -> R.color.power_button_busy
+        ProxyStatus.ERROR -> R.color.power_button_error
+        ProxyStatus.STOPPED -> R.color.power_button_off
+    }
+
+    private fun heroCardColor(status: ProxyStatus): Int = when (status) {
+        ProxyStatus.RUNNING -> R.color.hero_background_running
+        ProxyStatus.STARTING, ProxyStatus.STOPPING -> R.color.hero_background_busy
+        ProxyStatus.ERROR -> R.color.hero_background_error
+        ProxyStatus.STOPPED -> R.color.hero_background
+    }
+
     private fun statusColor(status: ProxyStatus): Int = when (status) {
         ProxyStatus.RUNNING -> R.color.status_running
         ProxyStatus.STARTING -> R.color.status_starting
         ProxyStatus.STOPPING -> R.color.status_stopping
         ProxyStatus.ERROR -> R.color.status_error
         ProxyStatus.STOPPED -> R.color.status_idle
+    }
+
+    private fun getPowerButtonText(status: ProxyStatus): String = when (status) {
+        ProxyStatus.RUNNING -> getString(R.string.power_button_stop)
+        ProxyStatus.STARTING, ProxyStatus.STOPPING -> getString(R.string.power_button_busy)
+        ProxyStatus.ERROR, ProxyStatus.STOPPED -> getString(R.string.power_button_start)
+    }
+
+    private fun getHeroTitle(status: ProxyStatus): String = when (status) {
+        ProxyStatus.RUNNING -> getString(R.string.hero_title_running)
+        ProxyStatus.STARTING -> getString(R.string.hero_title_starting)
+        ProxyStatus.STOPPING -> getString(R.string.hero_title_stopping)
+        ProxyStatus.ERROR -> getString(R.string.hero_title_error)
+        ProxyStatus.STOPPED -> getString(R.string.hero_title_stopped)
+    }
+
+    private fun getHeroSubtitle(status: ProxyStatus): String = when (status) {
+        ProxyStatus.RUNNING -> getString(R.string.hero_subtitle_running)
+        ProxyStatus.STARTING -> getString(R.string.hero_subtitle_starting)
+        ProxyStatus.STOPPING -> getString(R.string.hero_subtitle_stopping)
+        ProxyStatus.ERROR -> getString(R.string.hero_subtitle_error)
+        ProxyStatus.STOPPED -> getString(R.string.hero_subtitle_stopped)
     }
 
     private fun getStatusText(status: ProxyStatus): String = when (status) {
