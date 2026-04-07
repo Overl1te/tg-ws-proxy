@@ -36,7 +36,8 @@ Telegram Desktop → MTProto Proxy (127.0.0.1:1443) → WebSocket → Telegram D
 4. Устанавливает WebSocket (TLS) соединение к соответствующему DC через домены Telegram
 5. Если WS недоступен (302 redirect) — автоматически переключается на CfProxy / прямое TCP-соединение
 
-> [!IMPORTANT] Не грузит фото/видео?
+> [!IMPORTANT] 
+> ### Не грузит фото/видео?
 > ### Удалите в настройках прокси в DC->IP всё, кроме `4:149.154.167.220`
 > Подобная проблема встречается на аккаунтах без Premium  
 > Если вам не помогло, то настраивайте свой домен по гайду отсюда: https://github.com/Flowseal/tg-ws-proxy/blob/main/docs/CfProxy.md
