@@ -477,6 +477,8 @@ class _MsgSplitter:
 
 
 def _ws_domains(dc: int, is_media) -> List[str]:
+    if dc == 203:
+        dc = 2
     if is_media is None or is_media:
         return [f'kws{dc}-1.web.telegram.org', f'kws{dc}.web.telegram.org']
     return [f'kws{dc}.web.telegram.org', f'kws{dc}-1.web.telegram.org']
