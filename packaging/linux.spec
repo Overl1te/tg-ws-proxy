@@ -46,10 +46,24 @@ a = Analysis(
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=[],
+    excludes=[
+        'PIL._avif',
+        'PIL._webp',
+        'PIL._imagingtk',
+    ],
     noarchive=False,
     cipher=block_cipher,
 )
+
+_PIL_EXCLUDE_PYDS = {
+    '_avif', '_webp', '_imagingtk',
+    'FpxImagePlugin', 'MicImagePlugin',
+}
+a.binaries = [
+    (name, path, typ)
+    for name, path, typ in a.binaries
+    if not any(ex in name for ex in _PIL_EXCLUDE_PYDS)
+]
 
 icon_path = os.path.join(os.path.dirname(SPEC), os.pardir, 'icon.ico')
 if os.path.exists(icon_path):
