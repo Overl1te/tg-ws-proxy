@@ -12,7 +12,7 @@ import pyperclip
 import pystray
 from PIL import Image, ImageTk
 
-import proxy.tg_ws_proxy as tg_ws_proxy
+from proxy import get_link_host
 
 from utils.tray_common import (
     APP_NAME, DEFAULT_CONFIG, FIRST_RUN_MARKER, LOG_FILE,
@@ -227,7 +227,7 @@ def _show_first_run() -> None:
 def _build_menu():
     host = _config.get("host", DEFAULT_CONFIG["host"])
     port = _config.get("port", DEFAULT_CONFIG["port"])
-    link_host = tg_ws_proxy.get_link_host(host)
+    link_host = get_link_host(host)
     return pystray.Menu(
         pystray.MenuItem(f"Открыть в Telegram ({link_host}:{port})", _on_open_in_telegram, default=True),
         pystray.MenuItem("Скопировать ссылку", _on_copy_link),

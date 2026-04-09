@@ -5,8 +5,7 @@ import webbrowser
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
-import proxy.tg_ws_proxy as tg_ws_proxy
-from proxy import __version__
+from proxy import __version__, get_link_host, parse_dc_ip_list
 from utils.update_check import RELEASES_PAGE_URL, get_status
 
 from ui.ctk_theme import (
@@ -536,7 +535,7 @@ def validate_config_form(
         if line.strip()
     ]
     try:
-        tg_ws_proxy.parse_dc_ip_list(lines)
+        parse_dc_ip_list(lines)
     except ValueError as e:
         return str(e)
 
@@ -621,7 +620,7 @@ def populate_first_run_window(
     secret: str,
     on_done: Callable[[bool], None],
 ) -> None:
-    link_host = tg_ws_proxy.get_link_host(host)
+    link_host = get_link_host(host)
     tg_url = f"tg://proxy?server={link_host}&port={port}&secret=dd{secret}"
     fpx, fpy = FIRST_RUN_FRAME_PAD
     frame = main_content_frame(ctk, root, theme, padx=fpx, pady=fpy)

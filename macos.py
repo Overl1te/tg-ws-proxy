@@ -24,8 +24,8 @@ try:
 except ImportError:
     pyperclip = None
 
-import proxy.tg_ws_proxy as tg_ws_proxy
-from proxy import __version__
+from proxy import __version__, get_link_host, parse_dc_ip_list, proxy_config
+from proxy.tg_ws_proxy import _run
 
 from utils.tray_common import (
     APP_DIR, APP_NAME, DEFAULT_CONFIG, FIRST_RUN_MARKER, IPV6_WARN_MARKER,
@@ -153,7 +153,7 @@ def _run_proxy_thread() -> None:
     stop_ev = _asyncio.Event()
     _async_stop = (loop, stop_ev)
     try:
-        loop.run_until_complete(tg_ws_proxy._run(stop_event=stop_ev))
+        loop.run_until_complete(_run(stop_event=stop_ev))
     except Exception as exc:
         log.error("Proxy thread crashed: %s", exc)
         if "Address already in use" in str(exc):
@@ -176,7 +176,7 @@ def _start_proxy() -> None:
     if not apply_proxy_config(_config):
         _show_error("Ошибка конфигурации DC → IP.")
         return
-    pc = tg_ws_proxy.proxy_config
+    pc = proxy_config
     log.info("Starting proxy on %s:%d ...", pc.host, pc.port)
     _proxy_thread = threading.Thread(target=_run_proxy_thread, daemon=True, name="proxy")
     _proxy_thread.start()
@@ -362,7 +362,7 @@ def _edit_config_dialog() -> None:
         return
     dc_lines = [s.strip() for s in dc_str.replace(",", "\n").splitlines() if s.strip()]
     try:
-        tg_ws_proxy.parse_dc_ip_list(dc_lines)
+        parse_dc_ip_list(dc_lines)
     except ValueError as e:
         _show_error(str(e))
         return
@@ -451,7 +451,7 @@ def _show_first_run() -> None:
     port = _config.get("port", DEFAULT_CONFIG["port"])
     secret = _config.get("secret", DEFAULT_CONFIG["secret"])
     tg_url = tg_proxy_url(_config)
-    link_host = tg_ws_proxy.get_link_host(host)
+    link_host = get_link_host(host)
 
     text = (
         f"Прокси запущен и работает в строке меню.\n\n"
@@ -520,7 +520,7 @@ class TgWsProxyApp(_TgWsProxyAppBase):
 
         host = _config.get("host", DEFAULT_CONFIG["host"])
         port = _config.get("port", DEFAULT_CONFIG["port"])
-        link_host = tg_ws_proxy.get_link_host(host)
+        link_host = get_link_host(host)
 
         self._open_tg_item = rumps.MenuItem(
             f"Открыть в Telegram ({link_host}:{port})", callback=_on_open_in_telegram
@@ -560,7 +560,7 @@ class TgWsProxyApp(_TgWsProxyAppBase):
     def update_menu_title(self) -> None:
         host = _config.get("host", DEFAULT_CONFIG["host"])
         port = _config.get("port", DEFAULT_CONFIG["port"])
-        link_host = tg_ws_proxy.get_link_host(host)
+        link_host = get_link_host(host)
         self._open_tg_item.title = f"Открыть в Telegram ({link_host}:{port})"
 
 
