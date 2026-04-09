@@ -161,22 +161,33 @@ async def _cfproxy_fallback(reader, writer, relay_init, label,
                             clt_decryptor=None, clt_encryptor=None,
                             tg_encryptor=None, tg_decryptor=None,
                             splitter=None):
-    domain = f'kws{dc}.{proxy_config.fallback_cfproxy_domain}'
     media_tag = ' media' if is_media else ''
-    ws = None
 
-    log.info("[%s] DC%d%s -> CF proxy wss://%s/apiws",
-                label, dc, media_tag, domain)
-    try:
-        ws = await RawWebSocket.connect(domain, domain,
-                                        timeout=10.0)
-    except Exception as exc:
-        log.warning("[%s] DC%d%s CF proxy %s failed: %s",
-                    label, dc, media_tag, domain, exc)
-        
+    active = proxy_config.active_cfproxy_domain
+    others = [d for d in proxy_config.cfproxy_domains if d != active]
+
+    ws = None
+    chosen_domain = None
+
+    for base_domain in ([active] + others):
+        domain = f'kws{dc}.{base_domain}'
+        log.info("[%s] DC%d%s -> CF proxy wss",
+                 label, dc, media_tag)
+        try:
+            ws = await RawWebSocket.connect(domain, domain, timeout=10.0)
+            chosen_domain = base_domain
+            break
+        except Exception as exc:
+            log.warning("[%s] DC%d%s CF proxy failed: %s",
+                        label, dc, media_tag, exc)
+
     if ws is None:
         return False
-    
+
+    if chosen_domain and chosen_domain != proxy_config.active_cfproxy_domain:
+        log.info("[%s] Switching active CF domain", label)
+        proxy_config.active_cfproxy_domain = chosen_domain
+
     stats.connections_cfproxy += 1
     await ws.send(relay_init)
     await bridge_ws_reencrypt(reader, writer, ws, label,

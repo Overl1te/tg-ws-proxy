@@ -271,7 +271,7 @@ def apply_proxy_config(cfg: dict) -> bool:
     pc.pool_size = max(0, cfg.get("pool_size", DEFAULT_CONFIG["pool_size"]))
     pc.fallback_cfproxy = cfg.get("cfproxy", DEFAULT_CONFIG["cfproxy"])
     pc.fallback_cfproxy_priority = cfg.get("cfproxy_priority", DEFAULT_CONFIG["cfproxy_priority"])
-    pc.fallback_cfproxy_domain = cfg.get("cfproxy_domain", DEFAULT_CONFIG["cfproxy_domain"])
+    pc.cfproxy_user_domain = cfg.get("cfproxy_user_domain", DEFAULT_CONFIG["cfproxy_user_domain"])
     return True
 
 

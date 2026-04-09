@@ -4,6 +4,7 @@ import os
 import sys
 import time
 import struct
+import random
 import asyncio
 import hashlib
 import argparse
@@ -24,7 +25,7 @@ if __name__ == '__main__' and (__package__ is None or __package__ == ''):
 
 from .utils import *
 from .stats import stats
-from .config import proxy_config, parse_dc_ip_list
+from .config import proxy_config, parse_dc_ip_list, start_cfproxy_domain_refresh, CFPROXY_DEFAULT_DOMAINS
 from .bridge import MsgSplitter, do_fallback, bridge_ws_reencrypt
 from .raw_websocket import RawWebSocket, WsHandshakeError, set_sock_opts
 
@@ -445,6 +446,16 @@ async def _run(stop_event: Optional[asyncio.Event] = None):
     ws_blacklist.clear()
     dc_fail_until.clear()
 
+    if proxy_config.fallback_cfproxy:
+        user = proxy_config.cfproxy_user_domain
+        if user:
+            proxy_config.cfproxy_domains = [user]
+            proxy_config.active_cfproxy_domain = user
+        else:
+            proxy_config.cfproxy_domains = list(CFPROXY_DEFAULT_DOMAINS)
+            proxy_config.active_cfproxy_domain = random.choice(CFPROXY_DEFAULT_DOMAINS)
+            start_cfproxy_domain_refresh()
+
     secret_bytes = bytes.fromhex(proxy_config.secret)
 
     def client_cb(r, w):
@@ -472,8 +483,8 @@ async def _run(stop_event: Optional[asyncio.Event] = None):
         log.info("    DC%d: %s", dc, ip)
     if proxy_config.fallback_cfproxy:
         prio = 'CF first' if proxy_config.fallback_cfproxy_priority else 'TCP first'
-        log.info("  CF proxy:      %s (%s)",
-                 proxy_config.fallback_cfproxy_domain, prio)
+        user_domain = "user" if proxy_config.cfproxy_user_domain else "auto"
+        log.info("  CF proxy:      enabled (%s | %s)", prio, user_domain)
     log.info("=" * 60)
     log.info("  Connect link:")
     log.info("    %s", tg_link)
@@ -557,10 +568,9 @@ def main():
                     help='Socket send/recv buffer size in KB (default 256)')
     ap.add_argument('--pool-size', type=int, default=4, metavar='N',
                     help='WS connection pool size per DC (default 4, min 0)')
-    ap.add_argument('--cfproxy-domain', type=str, default='pclead.co.uk',
+    ap.add_argument('--cfproxy-domain', type=str, default='',
                     metavar='DOMAIN',
-                    help='Cloudflare-proxied domain for WS fallback '
-                         '(default: pclead.co.uk)')
+                    help='User defined Cloudflare-proxied domain for WS fallback')
     ap.add_argument('--no-cfproxy', action='store_true',
                     help='Disable Cloudflare proxy fallback')
     ap.add_argument('--cfproxy-priority', type=bool, default=True,
@@ -598,7 +608,7 @@ def main():
     proxy_config.pool_size = max(0, args.pool_size)
     proxy_config.fallback_cfproxy = not args.no_cfproxy
     proxy_config.fallback_cfproxy_priority = args.cfproxy_priority
-    proxy_config.fallback_cfproxy_domain = args.cfproxy_domain
+    proxy_config.cfproxy_user_domain = args.cfproxy_domain
 
     log_level = logging.DEBUG if args.verbose else logging.INFO
     log_fmt = logging.Formatter('%(asctime)s  %(levelname)-5s  %(message)s',

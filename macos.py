@@ -404,10 +404,9 @@ def _edit_config_dialog() -> None:
         cfproxy_priority = cfproxy_priority_result
 
     cfproxy_domain = _osascript_input(
-        "Домен CF-прокси:\n"
-        "DNS записи kws1-kws5,kws203 должны указывать на IP датацентров Telegram через Cloudflare.\n"
-        "pclead.co.uk готовый настроенный домен. Подробнее про настройку читайте в репозитории - docs/CfProxy.md",
-        cfg.get("cfproxy_domain", DEFAULT_CONFIG.get("cfproxy_domain", "pclead.co.uk")),
+        "Свой CF-домен (оставьте пустым для автоматического выбора):\n"
+        "DNS записи kws1-kws5,kws203 должны указывать на IP датацентров Telegram через Cloudflare.",
+        cfg.get("cfproxy_user_domain", DEFAULT_CONFIG.get("cfproxy_user_domain", "")),
     )
     if cfproxy_domain is None:
         return
@@ -425,7 +424,7 @@ def _edit_config_dialog() -> None:
         "check_updates": cfg.get("check_updates", True),
         "cfproxy": cfproxy,
         "cfproxy_priority": cfproxy_priority,
-        "cfproxy_domain": cfproxy_domain or DEFAULT_CONFIG.get("cfproxy_domain", "pclead.co.uk"),
+        "cfproxy_user_domain": cfproxy_domain,
     }
     save_config(new_cfg)
     log.info("Config saved: %s", new_cfg)
