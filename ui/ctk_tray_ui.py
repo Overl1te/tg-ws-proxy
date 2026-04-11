@@ -358,7 +358,7 @@ def install_tray_config_form(
         text_color="#ffffff", border_width=0,
         command=lambda: (
             header.winfo_toplevel().iconify(),
-            webbrowser.open("https://nowpayments.io/donation/flowseal"),
+            webbrowser.open("https://github.com/Flowseal/tg-ws-proxy/blob/main/docs/README.md"),
         ),
     ).pack(side="right", padx=(0, 6))
 
