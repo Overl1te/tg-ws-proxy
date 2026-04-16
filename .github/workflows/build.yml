@@ -384,7 +384,7 @@ jobs:
           tag_name: ${{ github.event.inputs.version }}
           name: "TG WS Proxy ${{ github.event.inputs.version }}"
           body: |
-            ## TG WS Proxy ${{ github.event.inputs.version }}
+            ## [❤️ Поддержать развитие проекта](https://github.com/Flowseal/tg-ws-proxy/blob/main/docs/Funding.md)
           files: |
             dist/TgWsProxy_windows.exe
             dist/TgWsProxy_windows_7_64bit.exe
