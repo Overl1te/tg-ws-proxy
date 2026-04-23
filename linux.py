@@ -34,6 +34,7 @@ from ui.ctk_theme import (
 _tray_icon: Optional[object] = None
 _config: dict = {}
 _exiting = False
+_update_version: Optional[str] = None
 
 # dialogs (tkinter messagebox)
 
@@ -119,6 +120,28 @@ def _on_open_logs(icon=None, item=None) -> None:
         )
     else:
         _show_info("Файл логов ещё не создан.")
+
+
+def _on_update_available(version: str) -> None:
+    global _update_version
+    _update_version = version
+    if _tray_icon:
+        _tray_icon.menu = _build_menu()
+
+
+def _on_do_update(icon=None, item=None) -> None:
+    from utils.updater import run_update
+    from utils.update_check import get_status
+    st = get_status()
+    assets = st.get("assets") or []
+    ver = st.get("latest") or "?"
+    if run_update(assets, ver):
+        _on_exit(_tray_icon)
+    else:
+        _show_error(
+            "Не удалось запустить автообновление.\n"
+            "Скачайте новую версию вручную на странице релиза."
+        )
 
 
 def _on_exit(icon=None, item=None) -> None:
@@ -228,7 +251,13 @@ def _build_menu():
     host = _config.get("host", DEFAULT_CONFIG["host"])
     port = _config.get("port", DEFAULT_CONFIG["port"])
     link_host = get_link_host(host)
-    return pystray.Menu(
+    items = []
+    if _update_version:
+        items += [
+            pystray.MenuItem(f"Обновить до {_update_version}", _on_do_update),
+            pystray.Menu.SEPARATOR,
+        ]
+    items += [
         pystray.MenuItem(f"Открыть в Telegram ({link_host}:{port})", _on_open_in_telegram, default=True),
         pystray.MenuItem("Скопировать ссылку", _on_copy_link),
         pystray.Menu.SEPARATOR,
@@ -237,7 +266,8 @@ def _build_menu():
         pystray.MenuItem("Открыть логи", _on_open_logs),
         pystray.Menu.SEPARATOR,
         pystray.MenuItem("Выход", _on_exit),
-    )
+    ]
+    return pystray.Menu(*items)
 
 
 # entry point
@@ -260,7 +290,11 @@ def run_tray() -> None:
         return
 
     start_proxy(_config, _show_error)
-    maybe_notify_update(_config, lambda: _exiting, _ask_yes_no)
+    maybe_notify_update(
+        _config, lambda: _exiting, _ask_yes_no,
+        on_update_available=_on_update_available,
+        on_exit=lambda: _on_exit(_tray_icon),
+    )
     _show_first_run()
     check_ipv6_warning(_show_info)
 

@@ -30,7 +30,8 @@ from proxy.tg_ws_proxy import _run
 from utils.tray_common import (
     APP_DIR, APP_NAME, DEFAULT_CONFIG, FIRST_RUN_MARKER, IPV6_WARN_MARKER,
     LOG_FILE, acquire_lock, apply_proxy_config, ensure_dirs, load_config,
-    log, release_lock, save_config, setup_logging, stop_proxy, tg_proxy_url,
+    log, maybe_notify_update, release_lock, save_config, setup_logging,
+    stop_proxy, tg_proxy_url,
 )
 
 MENUBAR_ICON_PATH = APP_DIR / "menubar_icon.png"
@@ -40,6 +41,7 @@ _async_stop: Optional[object] = None
 _app: Optional[object] = None
 _config: dict = {}
 _exiting: bool = False
+_update_version: Optional[str] = None
 
 # osascript dialogs
 
@@ -280,6 +282,19 @@ def _toggle_check_updates(_=None) -> None:
         _app._check_updates_item.title = _check_updates_menu_title()
 
 
+def _auto_update_menu_title() -> str:
+    on = bool(_config.get("auto_update", True))
+    return "✓ Устанавливать обновления автоматически" if on else "Устанавливать обновления автоматически (выкл)"
+
+
+def _toggle_auto_update(_=None) -> None:
+    global _config
+    _config["auto_update"] = not bool(_config.get("auto_update", True))
+    save_config(_config)
+    if _app is not None and getattr(_app, "_auto_update_item", None) is not None:
+        _app._auto_update_item.title = _auto_update_menu_title()
+
+
 def _on_open_release_page(_=None) -> None:
     from utils.update_check import RELEASES_PAGE_URL
     webbrowser.open(RELEASES_PAGE_URL)
@@ -288,30 +303,65 @@ def _on_open_release_page(_=None) -> None:
 # update check
 
 
-def _maybe_notify_update_async() -> None:
-    def _work():
-        time.sleep(1.5)
-        if _exiting:
-            return
-        if not _config.get("check_updates", True):
-            return
-        try:
-            from utils.update_check import RELEASES_PAGE_URL, get_status, run_check
-            run_check(__version__)
-            st = get_status()
-            if not st.get("has_update"):
-                return
-            url = (st.get("html_url") or "").strip() or RELEASES_PAGE_URL
-            ver = st.get("latest") or "?"
-            if _ask_yes_no(
-                f"Доступна новая версия: {ver}\n\nОткрыть страницу релиза в браузере?",
-                "TG WS Proxy — обновление",
-            ):
-                webbrowser.open(url)
-        except Exception as exc:
-            log.warning("Update check failed: %s", exc)
+def _run_on_main(fn) -> None:
+    try:
+        from PyObjCTools import AppHelper
+        AppHelper.callAfter(fn)
+    except Exception as exc:
+        log.warning("Main-thread dispatch failed: %s", exc)
 
-    threading.Thread(target=_work, daemon=True, name="update-check").start()
+
+def _insert_update_menu_item() -> None:
+    if _app is None or _update_version is None:
+        return
+    try:
+        title = f"Обновить до {_update_version}"
+        if title in _app.menu:
+            return
+        item = rumps.MenuItem(title, callback=_on_do_update)
+        keys = list(_app.menu.keys())
+        if keys:
+            _app.menu.insert_before(keys[0], item)
+        else:
+            _app.menu[title] = item
+    except Exception as exc:
+        log.warning("Failed to insert update menu item: %s", exc)
+
+
+def _on_update_available(version: str) -> None:
+    global _update_version
+    _update_version = version
+    if _app is not None:
+        _run_on_main(_insert_update_menu_item)
+
+
+def _on_do_update(_=None) -> None:
+    from utils.update_check import get_status
+    from utils.updater import run_update
+    st = get_status()
+    assets = st.get("assets") or []
+    ver = st.get("latest") or "?"
+    if run_update(assets, ver):
+        _quit_rumps()
+    else:
+        _show_error(
+            "Не удалось запустить автообновление.\n"
+            "Скачайте новую версию вручную на странице релиза."
+        )
+
+
+def _quit_rumps() -> None:
+    global _exiting
+    if _exiting:
+        os._exit(0)
+        return
+    _exiting = True
+    log.info("Quitting menubar app")
+    _run_on_main(rumps.quit_application)
+    threading.Thread(
+        target=lambda: (time.sleep(3), os._exit(0)),
+        daemon=True, name="force-exit",
+    ).start()
 
 
 # settings dialog
@@ -536,24 +586,34 @@ class TgWsProxyApp(_TgWsProxyAppBase):
         )
         self._version_item = rumps.MenuItem(f"Версия {__version__}", callback=lambda _: None)
 
+        from utils.updater import is_supported as _upd_supported
+        self._auto_update_item = None
+        if _upd_supported():
+            self._auto_update_item = rumps.MenuItem(
+                _auto_update_menu_title(), callback=_toggle_auto_update
+            )
+
+        menu_items = [
+            self._open_tg_item,
+            self._copy_link_item,
+            None,
+            self._restart_item,
+            self._settings_item,
+            self._logs_item,
+            None,
+            self._release_page_item,
+            self._check_updates_item,
+        ]
+        if self._auto_update_item is not None:
+            menu_items.append(self._auto_update_item)
+        menu_items.extend([None, self._version_item])
+
         super().__init__(
             "TG WS Proxy",
             icon=icon_path,
             template=False,
             quit_button="Выход",
-            menu=[
-                self._open_tg_item,
-                self._copy_link_item,
-                None,
-                self._restart_item,
-                self._settings_item,
-                self._logs_item,
-                None,
-                self._release_page_item,
-                self._check_updates_item,
-                None,
-                self._version_item,
-            ],
+            menu=menu_items,
         )
 
     def update_menu_title(self) -> None:
@@ -597,7 +657,11 @@ def run_menubar() -> None:
         return
 
     _start_proxy()
-    _maybe_notify_update_async()
+    maybe_notify_update(
+        _config, lambda: _exiting, _ask_yes_no,
+        on_update_available=_on_update_available,
+        on_exit=_quit_rumps,
+    )
     _show_first_run()
     _check_ipv6_warning()
 

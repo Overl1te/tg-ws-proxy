@@ -52,6 +52,10 @@ _TIP_AUTOSTART = (
     "Если вы переместите программу в другую папку, автозапуск сбросится"
 )
 _TIP_CHECK_UPDATES = "При запуске проверять наличие обновлений"
+_TIP_AUTO_UPDATE = (
+    "Автоматически скачивать и устанавливать обновления без подтверждения.\n"
+    "Если выключено — при наличии обновления появится кнопка в трее."
+)
 _TIP_CFPROXY = (
     "Использовать Cloudflare прокси для недоступных датацентров"
 )
@@ -295,6 +299,7 @@ class TrayConfigFormWidgets:
     adv_keys: Tuple[str, ...]
     autostart_var: Optional[Any]
     check_updates_var: Optional[Any]
+    auto_update_var: Optional[Any] = None
     cfproxy_var: Optional[Any] = None
     cfproxy_priority_var: Optional[Any] = None
     cfproxy_user_domain_var: Optional[Any] = None
@@ -540,6 +545,16 @@ def install_tray_config_form(
     upd_cb.pack(anchor="w", pady=(0, 6))
     attach_ctk_tooltip(upd_cb, _TIP_CHECK_UPDATES)
 
+    from utils.updater import is_supported as _upd_supported
+    auto_update_var = None
+    if _upd_supported():
+        auto_update_var = ctk.BooleanVar(
+            value=bool(cfg.get("auto_update", default_config.get("auto_update", True)))
+        )
+        auto_upd_cb = _checkbox(ctk, upd_inner, theme, "Устанавливать обновления автоматически", auto_update_var)
+        auto_upd_cb.pack(anchor="w", pady=(0, 6))
+        attach_ctk_tooltip(auto_upd_cb, _TIP_AUTO_UPDATE)
+
     if st.get("error"):
         upd_status = "Не удалось связаться с GitHub. Проверьте сеть."
     elif not st.get("checked"):
@@ -589,6 +604,7 @@ def install_tray_config_form(
         dc_textbox=dc_textbox, verbose_var=verbose_var,
         adv_entries=adv_entries, adv_keys=adv_keys,
         autostart_var=autostart_var, check_updates_var=check_updates_var,
+        auto_update_var=auto_update_var,
         cfproxy_var=cfproxy_var,
         cfproxy_priority_var=cfproxy_priority_var,
         cfproxy_user_domain_var=cfproxy_user_domain_var,
@@ -669,6 +685,8 @@ def validate_config_form(
     merge_adv_from_form(widgets, new_cfg, default_config)
     if widgets.check_updates_var is not None:
         new_cfg["check_updates"] = bool(widgets.check_updates_var.get())
+    if widgets.auto_update_var is not None:
+        new_cfg["auto_update"] = bool(widgets.auto_update_var.get())
     if widgets.cfproxy_var is not None:
         new_cfg["cfproxy"] = bool(widgets.cfproxy_var.get())
     if widgets.cfproxy_priority_var is not None:

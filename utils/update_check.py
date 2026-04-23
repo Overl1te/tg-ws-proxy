@@ -30,6 +30,7 @@ _state: Dict[str, Any] = {
     "latest": None,
     "html_url": None,
     "error": None,
+    "assets": [],
 }
 
 
@@ -162,6 +163,7 @@ def run_check(current_version: str) -> None:
         tag = (cache.get("tag_name") or "").strip()
         if tag:
             _apply_release_tag(tag, cache.get("html_url") or "", current_version)
+            _state["assets"] = cache.get("assets") or []
             return
         err = cache.get("last_error")
         _state["error"] = (
@@ -181,6 +183,7 @@ def run_check(current_version: str) -> None:
             tag = (cache.get("tag_name") or "").strip()
             url = (cache.get("html_url") or "").strip() or RELEASES_PAGE_URL
             _apply_release_tag(tag, url, current_version)
+            _state["assets"] = cache.get("assets") or []
             if new_etag:
                 cache["etag"] = new_etag
             _save_cache(cache_path, cache)
@@ -189,6 +192,7 @@ def run_check(current_version: str) -> None:
         assert data is not None
         tag = (data.get("tag_name") or "").strip()
         html_url = (data.get("html_url") or "").strip() or RELEASES_PAGE_URL
+        assets = data.get("assets") or []
         if not tag:
             _state["has_update"] = False
             _state["ahead_of_release"] = False
@@ -196,10 +200,12 @@ def run_check(current_version: str) -> None:
             _state["html_url"] = html_url
         else:
             _apply_release_tag(tag, html_url, current_version)
+        _state["assets"] = assets
         if new_etag:
             cache["etag"] = new_etag
         cache["tag_name"] = tag
         cache["html_url"] = html_url
+        cache["assets"] = assets
         cache.pop("last_error", None)
         _save_cache(cache_path, cache)
     except (HTTPError, URLError, OSError, TimeoutError, ValueError, json.JSONDecodeError) as e:

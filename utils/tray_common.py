@@ -367,6 +367,9 @@ def maybe_notify_update(
     cfg: dict,
     is_exiting: Callable[[], bool],
     ask_open: Callable[[str, str], bool],
+    *,
+    on_update_available: Optional[Callable[[str], None]] = None,
+    on_exit: Optional[Callable[[], None]] = None,
 ) -> None:
     if not cfg.get("check_updates", True):
         return
@@ -377,14 +380,29 @@ def maybe_notify_update(
             return
         try:
             from utils.update_check import RELEASES_PAGE_URL, get_status, run_check
+            from utils.updater import is_supported, run_update
             import webbrowser
 
             run_check(__version__)
             st = get_status()
             if not st.get("has_update"):
                 return
-            url = (st.get("html_url") or "").strip() or RELEASES_PAGE_URL
+
             ver = st.get("latest") or "?"
+            assets = st.get("assets") or []
+            url = (st.get("html_url") or "").strip() or RELEASES_PAGE_URL
+            auto_update = cfg.get("auto_update", True)
+
+            if auto_update and is_supported() and assets:
+                if run_update(assets, ver):
+                    if on_exit:
+                        on_exit()
+                    return
+                # launch failed — fall through to dialog
+
+            if not auto_update and on_update_available:
+                on_update_available(ver)
+
             if ask_open(
                 f"Доступна новая версия: {ver}\n\nОткрыть страницу релиза в браузере?",
                 "TG WS Proxy — обновление",
